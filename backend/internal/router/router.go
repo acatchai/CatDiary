@@ -14,7 +14,7 @@ func Register(h *server.Hertz) {
 
 	auth := v1.Group("/auth")
 	auth.POST("/register", handler.AuthRegister)
-	auth.POST("login", handler.AuthLogin)
+	auth.POST("/login", handler.AuthLogin)
 	auth.POST("/logout", middleware.RequireAuth(), handler.AuthLogout)
 	auth.GET("/me", middleware.RequireAuth(), handler.AuthMe)
 
