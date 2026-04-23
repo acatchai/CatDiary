@@ -10,9 +10,9 @@ import (
 )
 
 type RegisterReq struct {
-	Username string `json:"username" vd:"required,min=3,max=50"`
-	Password string `json:"password" vd:"required,min=6,max=50"`
-	Email    string `json:"email" vd:"omitempty,email"`
+	Username string `json:"username" validate:"required,min=3,max=50"`
+	Password string `json:"password" validate:"required,min=6,max=50"`
+	Email    string `json:"email" validate:"omitempty,email"`
 }
 
 // AuthRegister 注册用户
@@ -49,8 +49,8 @@ func AuthRegister(ctx context.Context, c *app.RequestContext) {
 }
 
 type LoginReq struct {
-	Username string `json:"username" vd:"required"`
-	Password string `json:"password" vd:"required"`
+	Username string `json:"username" validate:"required"`
+	Password string `json:"password" validate:"required"`
 }
 
 // AuthLogin 用户登录

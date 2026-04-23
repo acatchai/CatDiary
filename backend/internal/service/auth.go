@@ -19,7 +19,7 @@ var (
 func Register(username, password, email string) (*model.User, error) {
 	// 1. 检查用户名是否冲突
 	existingUser, err := repository.GetUserByUsername(username)
-	if err == nil {
+	if err != nil {
 		return nil, err
 	}
 	if existingUser != nil {
