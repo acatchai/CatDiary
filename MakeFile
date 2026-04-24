@@ -1,0 +1,38 @@
+ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+
+.DEFAULT_GOAL := help
+
+.PHONY: help dev up down restart logs run
+
+help:
+	@echo Targets:
+	@echo "  dev      = docker compose up -d + go run"
+	@echo "  up       = docker compose up -d"
+	@echo "  stop     = docker compose stop"
+	@echo "  down     = docker compose down"
+	@echo "  restart  = stopd + up"
+	@echo "  logs     = docker compose logs -f"
+	@echo "  run      = go run backend/cmd/api/main.go"
+
+dev:
+	@$(MAKE) up
+	@$(MAKE) run
+
+up:
+	cd "$(ROOT)" && docker compose up -d
+
+stop:
+	cd "$(ROOT)" && docker compose stop
+
+down:
+	cd "$(ROOT)" && docker compose down
+
+restart:
+	@$(MAKE) stop
+	@$(MAKE) up
+
+logs:
+	cd "$(ROOT)" && docker compose logs -f
+
+run:
+	cd "$(ROOT)backend" && go run ./cmd/api/main.go
