@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/acatchai/catdiary/backend/internal/service"
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/common/utils"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
@@ -27,11 +28,11 @@ type DiaryPutReq struct {
 }
 
 type DiaryPatchReq struct {
-	Title    string `json:"title" validate:"omitempty,min=1,max=100"`
-	Content  string `json:"content" validate:"omitempty"`
-	Mood     string `json:"mood" validate:"omitempty,max=20"`
-	Weather  string `json:"weather" validate:"omitempty,max=20"`
-	Location string `json:"location" validate:"omitempty,max=100"`
+	Title    *string `json:"title" validate:"omitempty,min=1,max=100"`
+	Content  *string `json:"content" validate:"omitempty"`
+	Mood     *string `json:"mood" validate:"omitempty,max=20"`
+	Weather  *string `json:"weather" validate:"omitempty,max=20"`
+	Location *string `json:"location" validate:"omitempty,max=100"`
 }
 
 // parseUintParam 解析 uint 类型的参数
@@ -89,30 +90,177 @@ func mapDiaryErr(c *app.RequestContext, err error) {
 
 // DiaryCreate 创建日记
 func DiaryCreate(ctx context.Context, c *app.RequestContext) {
-	c.String(consts.StatusNotImplemented, "TODO")
+	userID, ok := getUserIDFromCtx(c)
+	if !ok {
+		c.JSON(consts.StatusUnauthorized, utils.H{
+			"error": "未登录",
+		})
+		return
+	}
+
+	var req DiaryCreateReq
+	if err := c.BindAndValidate(&req); err != nil {
+		c.JSON(consts.StatusBadRequest, utils.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	diary, err := service.CreateDiary(userID, req.Title, req.Content, req.Mood, req.Weather, req.Location)
+	if err != nil {
+		mapDiaryErr(c, err)
+		return
+	}
+	c.JSON(consts.StatusCreated, utils.H{
+		"data": diary,
+	})
 }
 
 // DiaryList 获取日记列表
 func DiaryList(ctx context.Context, c *app.RequestContext) {
-	c.String(consts.StatusNotImplemented, "TODO")
+	userID, ok := getUserIDFromCtx(c)
+	if !ok {
+		c.JSON(consts.StatusUnauthorized, utils.H{
+			"error": "未登录",
+		})
+		return
+	}
+
+	page := clampInt(parseIntQueryDefault(c, "page", 1), 1, 1000000)
+	pageSize := clampInt(parseIntQueryDefault(c, "page_size", 20), 1, 100)
+
+	items, total, err := service.ListDiaries(userID, page, pageSize)
+	if err != nil {
+		mapDiaryErr(c, err)
+		return
+	}
+	c.JSON(consts.StatusOK, utils.H{
+		"items":     items,
+		"page":      page,
+		"page_size": pageSize,
+		"total":     total,
+	})
 }
 
 // DiaryGet 获取日记详情
 func DiaryGet(ctx context.Context, c *app.RequestContext) {
-	c.String(consts.StatusNotImplemented, "TODO")
+	userID, ok := getUserIDFromCtx(c)
+	if !ok {
+		c.JSON(consts.StatusUnauthorized, utils.H{
+			"error": "未登录",
+		})
+		return
+	}
+
+	id, err := parseUintParam(c, "id")
+	if err != nil {
+		c.JSON(consts.StatusBadRequest, utils.H{
+			"error": "id 参数不合法",
+		})
+		return
+	}
+
+	diary, err := service.GetDiary(userID, id)
+	if err != nil {
+		mapDiaryErr(c, err)
+		return
+	}
+	c.JSON(consts.StatusOK, utils.H{
+		"data": diary,
+	})
 }
 
 // DiaryPut 更新日记
 func DiaryPut(ctx context.Context, c *app.RequestContext) {
-	c.String(consts.StatusNotImplemented, "TODO")
+	userID, ok := getUserIDFromCtx(c)
+	if !ok {
+		c.JSON(consts.StatusUnauthorized, utils.H{
+			"error": "未登录",
+		})
+		return
+	}
+
+	id, err := parseUintParam(c, "id")
+	if err != nil {
+		c.JSON(consts.StatusBadRequest, utils.H{
+			"error": "id 参数不合法",
+		})
+		return
+	}
+
+	var req DiaryPutReq
+	if err := c.BindAndValidate(&req); err != nil {
+		c.JSON(consts.StatusBadRequest, utils.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	diary, err := service.PutDiary(userID, id, req.Title, req.Content, req.Mood, req.Weather, req.Location)
+	if err != nil {
+		mapDiaryErr(c, err)
+		return
+	}
+	c.JSON(consts.StatusOK, utils.H{
+		"data": diary,
+	})
 }
 
 // DiaryPatch 更新日记内容
 func DiaryPatch(ctx context.Context, c *app.RequestContext) {
-	c.String(consts.StatusNotImplemented, "TODO")
+	userID, ok := getUserIDFromCtx(c)
+	if !ok {
+		c.JSON(consts.StatusUnauthorized, utils.H{
+			"error": "未登录",
+		})
+		return
+	}
+	id, err := parseUintParam(c, "id")
+	if err != nil {
+		c.JSON(consts.StatusBadRequest, utils.H{
+			"error": "id 参数不合法",
+		})
+		return
+	}
+	var req DiaryPatchReq
+	if err := c.BindAndValidate(&req); err != nil {
+		c.JSON(consts.StatusBadRequest, utils.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	diary, err := service.PatchDiary(userID, id, req.Title, req.Content, req.Mood, req.Weather, req.Location)
+	if err != nil {
+		mapDiaryErr(c, err)
+		return
+	}
+	c.JSON(consts.StatusOK, utils.H{
+		"data": diary,
+	})
 }
 
 // DiaryDelete 删除日记
 func DiaryDelete(ctx context.Context, c *app.RequestContext) {
-	c.String(consts.StatusNotImplemented, "TODO")
+	userID, ok := getUserIDFromCtx(c)
+	if !ok {
+		c.JSON(consts.StatusUnauthorized, utils.H{
+			"error": "未登录",
+		})
+		return
+	}
+	id, err := parseUintParam(c, "id")
+	if err != nil {
+		c.JSON(consts.StatusBadRequest, utils.H{
+			"error": "id 参数不合法",
+		})
+		return
+	}
+	if err := service.DeleteDiary(userID, id); err != nil {
+		mapDiaryErr(c, err)
+		return
+	}
+	c.JSON(consts.StatusOK, utils.H{
+		"message": "删除成功",
+	})
 }
