@@ -27,6 +27,7 @@ func InitDB(dsn string) {
 	err = DB.AutoMigrate(
 		&model.User{},
 		&model.Diary{},
+		&model.DraftDiary{},
 	)
 	if err != nil {
 		log.Fatalf("自动迁移表结构失败: %v", err)

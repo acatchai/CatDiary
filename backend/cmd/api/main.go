@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/acatchai/catdiary/backend/internal/config"
@@ -23,6 +24,20 @@ func main() {
 	}
 
 	repository.InitDB(dsn)
+
+	redisAddr := strings.TrimSpace(os.Getenv("CATDIARY_REDIS_ADDR"))
+	if redisAddr == "" {
+		redisAddr = "127.0.0.1:6379"
+	}
+	redisPassword := os.Getenv("CATDIARY_REDIS_PASSWORD")
+	redisDB := 0
+	if v := strings.TrimSpace(os.Getenv("CATDIARY_REDIS_DB")); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			redisDB = n
+		}
+	}
+	repository.InitRedis(redisAddr, redisPassword, redisDB)
+	worker.StartDraftFlusher()
 
 	vd := validator.New(validator.WithRequiredStructEnabled())
 
