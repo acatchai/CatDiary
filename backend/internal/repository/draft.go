@@ -294,3 +294,302 @@ func GetDraftDiaryRedis(userID uint, draftID uint64) (*DraftDiaryRedis, error) {
 	return mapToDraftDiaryRedis(m)
 
 }
+
+// ListDraftDiariesRedis 获取草稿日记的Redis对象列表
+func ListDraftDiariesRedis(userID uint, page, pageSize int) ([]DraftDiaryRedis, int64, error) {
+	if RDB == nil {
+		return nil, 0, errors.New("redis not initialized")
+	}
+	ctx := context.Background()
+
+	indexKey := DraftDiaryIndexKey(userID)
+
+	total, err := RDB.ZCard(ctx, indexKey).Result()
+	if err != nil {
+		return nil, 0, err
+	}
+	if total == 0 {
+		return []DraftDiaryRedis{}, 0, nil
+	}
+
+	start := int64((page - 1) * pageSize)
+	stop := start + int64(pageSize) - 1
+	ids, err := RDB.ZRevRange(ctx, indexKey, start, stop).Result()
+	if err != nil {
+		return nil, 0, err
+	}
+	pipe := RDB.Pipeline()
+	cmds := make([]*redis.MapStringStringCmd, 0, len(ids))
+
+	for _, idStr := range ids {
+		did, err := strconv.ParseUint(idStr, 10, 64)
+		if err != nil || did == 0 {
+			continue
+		}
+		cmds = append(cmds, pipe.HGetAll(ctx, DraftDiaryKey(userID, did)))
+	}
+	_, err = pipe.Exec(ctx)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return nil, 0, err
+	}
+
+	items := make([]DraftDiaryRedis, 0, len(cmds))
+	for _, cmd := range cmds {
+		m, err := cmd.Result()
+		if err != nil {
+			continue
+		}
+		if len(m) == 0 || m["deleted"] == "1" {
+			continue
+		}
+		d, err := mapToDraftDiaryRedis(m)
+		if err != nil {
+			continue
+		}
+		items = append(items, *d)
+	}
+	return items, total, nil
+}
+
+func PutDraftDiaryRedis(userID uint, draftID uint64, expectedVersion *uint64, title, content, mood, weather, location string, ttl time.Duration, debounce time.Duration) (*DraftDiaryRedis, uint64, error) {
+	if RDB == nil {
+		return nil, 0, errors.New("redis not initialized")
+	}
+	ctx := context.Background()
+	expected := ""
+	if expectedVersion != nil {
+		expected = strconv.FormatUint(*expectedVersion, 10)
+	}
+	nowMs := time.Now().UnixMilli()
+	key := DraftDiaryKey(userID, draftID)
+
+	res, err := draftPutScript.Run(ctx, RDB, []string{key, DraftDiaryIndexKey(userID), DraftDirtyKey()},
+		expected,
+		strconv.FormatInt(ttl.Milliseconds(), 10),
+		strconv.FormatInt(debounce.Milliseconds(), 10),
+		strconv.FormatInt(nowMs, 10),
+		strconv.FormatUint(draftID, 10),
+		title, content, mood, weather, location,
+	).Result()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	arr, ok := res.([]any)
+	if !ok || len(arr) == 0 {
+		return nil, 0, errors.New("unexpected redis response")
+	}
+
+	switch fmt.Sprint(arr[0]) {
+	case "NOT_FOUND":
+		return nil, 0, ErrDraftNotFoundRedis
+	case "CONFLICT":
+		if len(arr) >= 2 {
+			cur, _ := strconv.ParseUint(fmt.Sprint(arr[1]), 10, 64)
+			return nil, cur, ErrDraftConflictRedis
+		}
+		return nil, 0, ErrDraftConflictRedis
+	case "OK":
+		var cur uint64
+		if len(arr) >= 2 {
+			cur, _ = strconv.ParseUint(fmt.Sprint(arr[1]), 10, 64)
+		}
+		d, err := GetDraftDiaryRedis(userID, draftID)
+		if err != nil {
+			return nil, cur, err
+		}
+		return d, cur, nil
+	default:
+		return nil, 0, errors.New("unexpected redis response")
+	}
+}
+
+// PatchDraftDiaryRedis 更新草稿日记的Redis对象
+func PatchDraftDiaryRedis(userID uint, draftID uint64, expectedVersion *uint64, fields map[string]string, ttl time.Duration, debounce time.Duration) (*DraftDiaryRedis, uint64, error) {
+	if RDB == nil {
+		return nil, 0, errors.New("redis not initialized")
+	}
+	ctx := context.Background()
+
+	expected := ""
+	if expectedVersion != nil {
+		expected = strconv.FormatUint(*expectedVersion, 10)
+	}
+
+	nowMs := time.Now().UnixMilli()
+	key := DraftDiaryKey(userID, draftID)
+
+	args := make([]any, 0, 6+len(fields)*2)
+	args = append(args,
+		expected,
+		strconv.FormatInt(ttl.Milliseconds(), 10),
+		strconv.FormatInt(debounce.Milliseconds(), 10),
+		strconv.FormatInt(nowMs, 10),
+		strconv.FormatUint(draftID, 10),
+		strconv.Itoa(len(fields)),
+	)
+	for k, v := range fields {
+		args = append(args, k, v)
+	}
+
+	res, err := draftPatchScript.Run(ctx, RDB, []string{key, DraftDiaryIndexKey(userID), DraftDirtyKey()}, args...).Result()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	arr, ok := res.([]any)
+	if !ok || len(arr) == 0 {
+		return nil, 0, errors.New("unexpected redis response")
+	}
+
+	switch fmt.Sprint(arr[0]) {
+	case "NOT_FOUND":
+		return nil, 0, ErrDraftNotFoundRedis
+	case "NO_UPDATES":
+		return nil, 0, errors.New("no updates")
+	case "CONFLICT":
+		if len(arr) >= 2 {
+			cur, _ := strconv.ParseUint(fmt.Sprint(arr[1]), 10, 64)
+			return nil, cur, ErrDraftConflictRedis
+		}
+		return nil, 0, ErrDraftConflictRedis
+	case "OK":
+		var cur uint64
+		if len(arr) >= 2 {
+			cur, _ = strconv.ParseUint(fmt.Sprint(arr[1]), 10, 64)
+		}
+		d, err := GetDraftDiaryRedis(userID, draftID)
+		if err != nil {
+			return nil, cur, err
+		}
+		return d, cur, nil
+	default:
+		return nil, 0, errors.New("unexpected redis response")
+	}
+}
+
+// DeleteDraftDiaryRedis 删除草稿日记的Redis对象
+func DeleteDraftDiaryRedis(userID uint, draftID uint64, deleteTTL time.Duration) error {
+	if RDB == nil {
+		return errors.New("redis not initialized")
+	}
+	ctx := context.Background()
+
+	nowMs := time.Now().UnixMilli()
+	key := DraftDiaryKey(userID, draftID)
+
+	res, err := draftDeleteScript.Run(ctx, RDB, []string{key, DraftDiaryIndexKey(userID), DraftDirtyKey()},
+		strconv.FormatInt(deleteTTL.Milliseconds(), 10),
+		strconv.FormatInt(nowMs, 10),
+		strconv.FormatUint(draftID, 10),
+	).Result()
+	if err != nil {
+		return err
+	}
+
+	arr, ok := res.([]any)
+	if !ok || len(arr) == 0 {
+		return errors.New("unexpected redis response")
+	}
+	if fmt.Sprint(arr[0]) == "NOT_FOUND" {
+		return ErrDraftNotFoundRedis
+	}
+	return nil
+}
+
+func FlushDraftDiaryRedis(userID uint, draftID uint64) error {
+	if RDB == nil {
+		return errors.New("redis not initialized")
+	}
+	ctx := context.Background()
+
+	key := DraftDiaryKey(userID, draftID)
+	exists, err := RDB.Exists(ctx, key).Result()
+	if err != nil {
+		return err
+	}
+	if exists == 0 {
+		return ErrDraftNotFoundRedis
+	}
+	if v, err := RDB.HGet(ctx, key, "deleted").Result(); err == nil && v == "1" {
+		return ErrDraftNotFoundRedis
+	}
+
+	nowMs := time.Now().UnixMilli()
+	return RDB.ZAdd(ctx, DraftDirtyKey(), redis.Z{Score: float64(nowMs), Member: key}).Err()
+}
+
+// DraftDirtyDueKeys 获取待刷新的草稿日记的Redis对象
+func DraftDirtyDueKeys(ctx context.Context, nowMs int64, limit int64) ([]string, error) {
+	if RDB == nil {
+		return nil, errors.New("redis not initialized")
+	}
+	return RDB.ZRangeByScore(ctx, DraftDirtyKey(), &redis.ZRangeBy{
+		Min:    "-inf",
+		Max:    strconv.FormatInt(nowMs, 10),
+		Offset: 0,
+		Count:  limit,
+	}).Result()
+}
+
+// DraftDirtyRemove 删除待刷新的草稿日记的Redis对象
+func DraftDirtyRemove(ctx context.Context, key string) error {
+	if RDB == nil {
+		return errors.New("redis not initialized")
+	}
+	return RDB.ZRem(ctx, DraftDirtyKey(), key).Err()
+}
+
+// DraftDirtyReschedule 重新调度待刷新的草稿日记的Redis对象
+func DraftDirtyReschedule(ctx context.Context, key string, nextMs int64) error {
+	if RDB == nil {
+		return errors.New("redis not initialized")
+	}
+	return RDB.ZAdd(ctx, DraftDirtyKey(), redis.Z{Score: float64(nextMs), Member: key}).Err()
+}
+
+// TryDraftLock 尝试获取草稿日记的锁
+func TryDraftLock(ctx context.Context, userID uint, draftID uint64, token string, ttl time.Duration) (bool, error) {
+	if RDB == nil {
+		return false, errors.New("redis not initialized")
+	}
+	return RDB.SetNX(ctx, DraftDiaryLockKey(userID, draftID), token, ttl).Result()
+}
+
+var unlockScript = redis.NewScript(`
+if redis.call('GET', KEYS[1]) == ARGV[1] then
+	return redis.call('DEL',KEYS[1])
+end
+return 0
+`)
+
+// UnlockDraft 解锁草稿日记
+func UnlockDraft(ctx context.Context, userID uint, draftID uint64, token string) error {
+	if RDB == nil {
+		return errors.New("redis not initialized")
+	}
+	_, err := unlockScript.Run(ctx, RDB, []string{DraftDiaryLockKey(userID, draftID)}, token).Result()
+	return err
+}
+
+func mapToDraftDiaryRedis(m map[string]string) (*DraftDiaryRedis, error) {
+	id, _ := strconv.ParseUint(m["id"], 10, 64)
+	uid64, _ := strconv.ParseUint(m["user_id"], 10, 64)
+	version, _ := strconv.ParseUint(m["version"], 10, 64)
+	createdAtMs, _ := strconv.ParseInt(m["created_at"], 10, 64)
+	updatedAtMs, _ := strconv.ParseInt(m["updated_at"], 10, 64)
+
+	return &DraftDiaryRedis{
+		ID:          id,
+		UserID:      uint(uid64),
+		Title:       m["title"],
+		Content:     m["content"],
+		Mood:        m["mood"],
+		Weather:     m["weather"],
+		Location:    m["location"],
+		Version:     version,
+		CreatedAtMs: createdAtMs,
+		UpdatedAtMs: updatedAtMs,
+		Deleted:     m["deleted"] == "1",
+	}, nil
+}

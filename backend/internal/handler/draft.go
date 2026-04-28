@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/acatchai/catdiary/backend/internal/service"
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/common/utils"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
