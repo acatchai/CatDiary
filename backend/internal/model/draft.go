@@ -14,6 +14,7 @@ type DraftDiary struct {
 	Mood     string `gorm:"type:varchar(20)" json:"mood"`
 	Weather  string `gorm:"type:varchar(20)" json:"weather"`
 	Location string `gorm:"type:varchar(100)" json:"location"`
+	OccurredAt *time.Time `gorm:"index" json:"occurred_at"`
 
 	Version   uint64         `gorm:"not null;default:1" json:"version"`
 	CreatedAt time.Time      `json:"created_at"`

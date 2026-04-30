@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/acatchai/catdiary/backend/internal/model"
 	"github.com/acatchai/catdiary/backend/internal/repository"
@@ -13,19 +14,34 @@ var (
 	ErrNoDiaryUpdates = errors.New("没有可更新的字段")
 )
 
+func normalizeDiaryOccurredAt(d *model.Diary) {
+	if d == nil {
+		return
+	}
+	if d.OccurredAt == nil {
+		d.OccurredAt = &d.CreatedAt
+	}
+}
+
 // CreateDiary 创建日记
-func CreateDiary(userID uint, title, content, mood, weather, location string) (*model.Diary, error) {
+func CreateDiary(userID uint, occurredAt *time.Time, title, content, mood, weather, location string) (*model.Diary, error) {
+	if occurredAt == nil {
+		t := time.Now()
+		occurredAt = &t
+	}
 	diary := &model.Diary{
-		UserID:   userID,
+		UserID:     userID,
 		Title:    strings.TrimSpace(title),
 		Content:  content,
 		Mood:     strings.TrimSpace(mood),
 		Weather:  strings.TrimSpace(weather),
 		Location: strings.TrimSpace(location),
+		OccurredAt: occurredAt,
 	}
 	if err := repository.CreateDiary(diary); err != nil {
 		return nil, err
 	}
+	normalizeDiaryOccurredAt(diary)
 	return diary, nil
 }
 
@@ -38,7 +54,16 @@ func ListDiaries(userID uint, page, pageSize int) ([]model.Diary, int64, error) 
 		pageSize = 20
 	}
 	offset := (page - 1) * pageSize
-	return repository.ListDiariesByUser(userID, offset, pageSize)
+	items, total, err := repository.ListDiariesByUser(userID, offset, pageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+	for i := range items {
+		if items[i].OccurredAt == nil {
+			items[i].OccurredAt = &items[i].CreatedAt
+		}
+	}
+	return items, total, nil
 }
 
 // GetDiary 获取日记详情
@@ -50,17 +75,21 @@ func GetDiary(userID, diaryID uint) (*model.Diary, error) {
 	if diary == nil {
 		return nil, ErrDiaryNotFound
 	}
+	normalizeDiaryOccurredAt(diary)
 	return diary, nil
 }
 
 // PutDiary 更新日记
-func PutDiary(userID, diaryID uint, title, content, mood, weather, location string) (*model.Diary, error) {
+func PutDiary(userID, diaryID uint, occurredAt *time.Time, title, content, mood, weather, location string) (*model.Diary, error) {
 	fields := map[string]any{
 		"title":    strings.TrimSpace(title),
 		"content":  content,
 		"mood":     strings.TrimSpace(mood),
 		"weather":  strings.TrimSpace(weather),
 		"location": strings.TrimSpace(location),
+	}
+	if occurredAt != nil {
+		fields["occurred_at"] = *occurredAt
 	}
 	affected, err := repository.UpdateDiaryByIDAndUser(userID, diaryID, fields)
 	if err != nil {
@@ -73,7 +102,7 @@ func PutDiary(userID, diaryID uint, title, content, mood, weather, location stri
 }
 
 // PatchDiary 更新日记内容
-func PatchDiary(userID, diaryID uint, title, content, mood, weather, location *string) (*model.Diary, error) {
+func PatchDiary(userID, diaryID uint, occurredAt *time.Time, title, content, mood, weather, location *string) (*model.Diary, error) {
 	fields := make(map[string]any)
 	if title != nil {
 		fields["title"] = strings.TrimSpace(*title)
@@ -89,6 +118,9 @@ func PatchDiary(userID, diaryID uint, title, content, mood, weather, location *s
 	}
 	if location != nil {
 		fields["location"] = strings.TrimSpace(*location)
+	}
+	if occurredAt != nil {
+		fields["occurred_at"] = *occurredAt
 	}
 
 	if len(fields) == 0 {

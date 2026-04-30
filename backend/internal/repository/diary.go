@@ -20,7 +20,7 @@ func ListDiariesByUser(userID uint, offset, limit int) ([]model.Diary, int64, er
 	}
 
 	var items []model.Diary
-	tx := DB.Where("user_id = ?", userID).Order("created_at DESC, id DESC").Offset(offset).Limit(limit).Find(&items)
+	tx := DB.Where("user_id = ?", userID).Order("COALESCE(occurred_at, created_at) DESC, id DESC").Offset(offset).Limit(limit).Find(&items)
 	if tx.Error != nil {
 		return nil, 0, tx.Error
 	}

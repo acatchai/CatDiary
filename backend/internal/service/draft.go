@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,21 +26,29 @@ func (e *DraftConflictError) Error() string {
 }
 
 type DraftDiary struct {
-	ID        uint64 `json:"id"`
-	UserID    uint   `json:"user_id"`
-	Title     string `json:"title"`
-	Content   string `json:"content"`
-	Mood      string `json:"mood"`
-	Weather   string `json:"weather"`
-	Location  string `json:"location"`
-	Version   uint64 `json:"version"`
-	CreatedAt int64  `json:"created_at"`
-	UpdatedAt int64  `json:"updated_at"`
+	ID         uint64 `json:"id"`
+	UserID     uint   `json:"user_id"`
+	Title      string `json:"title"`
+	Content    string `json:"content"`
+	Mood       string `json:"mood"`
+	Weather    string `json:"weather"`
+	Location   string `json:"location"`
+	OccurredAt int64  `json:"occurred_at"`
+	Version    uint64 `json:"version"`
+	CreatedAt  int64  `json:"created_at"`
+	UpdatedAt  int64  `json:"updated_at"`
 }
 
 // CreateDraftDiary 创建草稿日记
-func CreateDraftDiary(userID uint, title, content, mood, weather, location string) (*DraftDiary, error) {
+func CreateDraftDiary(userID uint, occurredAt *time.Time, title, content, mood, weather, location string) (*DraftDiary, error) {
+	var occurredAtMs int64
+	if occurredAt != nil {
+		occurredAtMs = occurredAt.UnixMilli()
+	} else {
+		occurredAtMs = time.Now().UnixMilli()
+	}
 	d, err := repository.CreateDraftDiaryRedis(userID,
+		occurredAtMs,
 		strings.TrimSpace(title),
 		content,
 		strings.TrimSpace(mood),
@@ -81,11 +90,17 @@ func ListDraftDiaries(userID uint, page, pageSize int) ([]DraftDiary, int64, err
 }
 
 // PutDraftDiary 更新草稿日记
-func PutDraftDiary(userID uint, draftID uint64, expectedVersion *uint64, title, content, mood, weather, location string) (*DraftDiary, error) {
+func PutDraftDiary(userID uint, draftID uint64, expectedVersion *uint64, occurredAt *time.Time, title, content, mood, weather, location string) (*DraftDiary, error) {
+	var occurredAtMs *int64
+	if occurredAt != nil {
+		v := occurredAt.UnixMilli()
+		occurredAtMs = &v
+	}
 	d, cur, err := repository.PutDraftDiaryRedis(
 		userID,
 		draftID,
 		expectedVersion,
+		occurredAtMs,
 		strings.TrimSpace(title),
 		content,
 		strings.TrimSpace(mood),
@@ -107,7 +122,7 @@ func PutDraftDiary(userID uint, draftID uint64, expectedVersion *uint64, title, 
 }
 
 // PatchDraftDiary 更新草稿日记
-func PatchDraftDiary(userID uint, draftID uint64, expectedVersion *uint64, title, content, mood, weather, location *string) (*DraftDiary, error) {
+func PatchDraftDiary(userID uint, draftID uint64, expectedVersion *uint64, occurredAt *time.Time, title, content, mood, weather, location *string) (*DraftDiary, error) {
 	fields := map[string]string{}
 	if title != nil {
 		fields["title"] = strings.TrimSpace(*title)
@@ -123,6 +138,9 @@ func PatchDraftDiary(userID uint, draftID uint64, expectedVersion *uint64, title
 	}
 	if location != nil {
 		fields["location"] = strings.TrimSpace(*location)
+	}
+	if occurredAt != nil {
+		fields["occurred_at"] = strconv.FormatInt(occurredAt.UnixMilli(), 10)
 	}
 	if len(fields) == 0 {
 		return nil, ErrNoDraftUpdates
@@ -169,15 +187,16 @@ func FlushDraftDiary(userID uint, draftID uint64) error {
 // mapDraft 映射草稿日记
 func mapDraft(d *repository.DraftDiaryRedis) *DraftDiary {
 	return &DraftDiary{
-		ID:        d.ID,
-		UserID:    d.UserID,
-		Title:     d.Title,
-		Content:   d.Content,
-		Mood:      d.Mood,
-		Weather:   d.Weather,
-		Location:  d.Location,
-		Version:   d.Version,
-		CreatedAt: d.CreatedAtMs,
-		UpdatedAt: d.UpdatedAtMs,
+		ID:         d.ID,
+		UserID:     d.UserID,
+		Title:      d.Title,
+		Content:    d.Content,
+		Mood:       d.Mood,
+		Weather:    d.Weather,
+		Location:   d.Location,
+		OccurredAt: d.OccurredAtMs,
+		Version:    d.Version,
+		CreatedAt:  d.CreatedAtMs,
+		UpdatedAt:  d.UpdatedAtMs,
 	}
 }

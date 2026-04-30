@@ -78,6 +78,7 @@ func runDraftFlusher() {
 					Mood:        d.Mood,
 					Weather:     d.Weather,
 					Location:    d.Location,
+					OccurredAtMs: d.OccurredAtMs,
 					Version:     d.Version,
 					CreatedAtMs: d.CreatedAtMs,
 					UpdatedAtMs: d.UpdatedAtMs,

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/acatchai/catdiary/backend/internal/service"
 	"github.com/cloudwego/hertz/pkg/app"
@@ -13,11 +14,12 @@ import (
 )
 
 type DraftCreateReq struct {
-	Title    string `json:"title" validate:"required,min=1,max=100"`
-	Content  string `json:"content" validate:"required"`
-	Mood     string `json:"mood" validate:"omitempty,max=20"`
-	Weather  string `json:"weather" validate:"omitempty,max=20"`
-	Location string `json:"location" validate:"omitempty,max=100"`
+	Title      string  `json:"title" validate:"required,min=1,max=100"`
+	Content    string  `json:"content" validate:"required"`
+	Mood       string  `json:"mood" validate:"omitempty,max=20"`
+	Weather    string  `json:"weather" validate:"omitempty,max=20"`
+	Location   string  `json:"location" validate:"omitempty,max=100"`
+	OccurredAt *string `json:"occurred_at" validate:"omitempty"`
 }
 
 type DraftPutReq struct {
@@ -27,6 +29,7 @@ type DraftPutReq struct {
 	Mood            string  `json:"mood" validate:"omitempty,max=20"`
 	Weather         string  `json:"weather" validate:"omitempty,max=20"`
 	Location        string  `json:"location" validate:"omitempty,max=100"`
+	OccurredAt      *string `json:"occurred_at" validate:"omitempty"`
 }
 
 type DraftPatchReq struct {
@@ -36,6 +39,7 @@ type DraftPatchReq struct {
 	Mood            *string `json:"mood" validate:"omitempty,max=20"`
 	Weather         *string `json:"weather" validate:"omitempty,max=20"`
 	Location        *string `json:"location" validate:"omitempty,max=100"`
+	OccurredAt      *string `json:"occurred_at" validate:"omitempty"`
 }
 
 func parseUint64Param(c *app.RequestContext, key string) (uint64, error) {
@@ -63,7 +67,19 @@ func DraftCreate(ctx context.Context, c *app.RequestContext) {
 		})
 		return
 	}
-	draft, err := service.CreateDraftDiary(userID, req.Title, req.Content, req.Mood, req.Weather, req.Location)
+	var occurredAt *time.Time
+	if req.OccurredAt != nil {
+		t, err := parseTimeRFC3339(*req.OccurredAt)
+		if err != nil {
+			c.JSON(consts.StatusBadRequest, utils.H{
+				"error": "occurred_at 参数不合法",
+			})
+			return
+		}
+		occurredAt = &t
+	}
+
+	draft, err := service.CreateDraftDiary(userID, occurredAt, req.Title, req.Content, req.Mood, req.Weather, req.Location)
 	if err != nil {
 		c.JSON(consts.StatusInternalServerError, utils.H{
 			"error": "创建草稿失败",
@@ -163,7 +179,19 @@ func DraftPut(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 
-	draft, err := service.PutDraftDiary(userID, id, req.ExpectedVersion, req.Title, req.Content, req.Mood, req.Weather, req.Location)
+	var occurredAt *time.Time
+	if req.OccurredAt != nil {
+		t, err := parseTimeRFC3339(*req.OccurredAt)
+		if err != nil {
+			c.JSON(consts.StatusBadRequest, utils.H{
+				"error": "occurred_at 参数不合法",
+			})
+			return
+		}
+		occurredAt = &t
+	}
+
+	draft, err := service.PutDraftDiary(userID, id, req.ExpectedVersion, occurredAt, req.Title, req.Content, req.Mood, req.Weather, req.Location)
 	if err != nil {
 		if err == service.ErrDraftNotFound {
 			c.JSON(consts.StatusNotFound, utils.H{
@@ -214,7 +242,19 @@ func DraftPatch(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 
-	draft, err := service.PatchDraftDiary(userID, id, req.ExpectedVersion, req.Title, req.Content, req.Mood, req.Weather, req.Location)
+	var occurredAt *time.Time
+	if req.OccurredAt != nil {
+		t, err := parseTimeRFC3339(*req.OccurredAt)
+		if err != nil {
+			c.JSON(consts.StatusBadRequest, utils.H{
+				"error": "occurred_at 参数不合法",
+			})
+			return
+		}
+		occurredAt = &t
+	}
+
+	draft, err := service.PatchDraftDiary(userID, id, req.ExpectedVersion, occurredAt, req.Title, req.Content, req.Mood, req.Weather, req.Location)
 	if err != nil {
 		if err == service.ErrDraftNotFound {
 			c.JSON(consts.StatusNotFound, utils.H{

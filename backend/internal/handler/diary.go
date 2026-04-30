@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/acatchai/catdiary/backend/internal/service"
 	"github.com/cloudwego/hertz/pkg/app"
@@ -12,27 +13,34 @@ import (
 )
 
 type DiaryCreateReq struct {
-	Title    string `json:"title" validate:"required,min=1,max=100"`
-	Content  string `json:"content" validate:"required"`
-	Mood     string `json:"mood" validate:"omitempty,max=20"`
-	Weather  string `json:"weather" validate:"omitempty,max=20"`
-	Location string `json:"location" validate:"omitempty,max=100"`
+	Title      string  `json:"title" validate:"required,min=1,max=100"`
+	Content    string  `json:"content" validate:"required"`
+	Mood       string  `json:"mood" validate:"omitempty,max=20"`
+	Weather    string  `json:"weather" validate:"omitempty,max=20"`
+	Location   string  `json:"location" validate:"omitempty,max=100"`
+	OccurredAt *string `json:"occurred_at" validate:"omitempty"`
 }
 
 type DiaryPutReq struct {
-	Title    string `json:"title" validate:"required,min=1,max=100"`
-	Content  string `json:"content" validate:"required"`
-	Mood     string `json:"mood" validate:"omitempty,max=20"`
-	Weather  string `json:"weather" validate:"omitempty,max=20"`
-	Location string `json:"location" validate:"omitempty,max=100"`
+	Title      string  `json:"title" validate:"required,min=1,max=100"`
+	Content    string  `json:"content" validate:"required"`
+	Mood       string  `json:"mood" validate:"omitempty,max=20"`
+	Weather    string  `json:"weather" validate:"omitempty,max=20"`
+	Location   string  `json:"location" validate:"omitempty,max=100"`
+	OccurredAt *string `json:"occurred_at" validate:"omitempty"`
 }
 
 type DiaryPatchReq struct {
-	Title    *string `json:"title" validate:"omitempty,min=1,max=100"`
-	Content  *string `json:"content" validate:"omitempty"`
-	Mood     *string `json:"mood" validate:"omitempty,max=20"`
-	Weather  *string `json:"weather" validate:"omitempty,max=20"`
-	Location *string `json:"location" validate:"omitempty,max=100"`
+	Title      *string `json:"title" validate:"omitempty,min=1,max=100"`
+	Content    *string `json:"content" validate:"omitempty"`
+	Mood       *string `json:"mood" validate:"omitempty,max=20"`
+	Weather    *string `json:"weather" validate:"omitempty,max=20"`
+	Location   *string `json:"location" validate:"omitempty,max=100"`
+	OccurredAt *string `json:"occurred_at" validate:"omitempty"`
+}
+
+func parseTimeRFC3339(s string) (time.Time, error) {
+	return time.Parse(time.RFC3339, strings.TrimSpace(s))
 }
 
 // parseUintParam 解析 uint 类型的参数
@@ -106,7 +114,19 @@ func DiaryCreate(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 
-	diary, err := service.CreateDiary(userID, req.Title, req.Content, req.Mood, req.Weather, req.Location)
+	var occurredAt *time.Time
+	if req.OccurredAt != nil {
+		t, err := parseTimeRFC3339(*req.OccurredAt)
+		if err != nil {
+			c.JSON(consts.StatusBadRequest, utils.H{
+				"error": "occurred_at 参数不合法",
+			})
+			return
+		}
+		occurredAt = &t
+	}
+
+	diary, err := service.CreateDiary(userID, occurredAt, req.Title, req.Content, req.Mood, req.Weather, req.Location)
 	if err != nil {
 		mapDiaryErr(c, err)
 		return
@@ -196,7 +216,19 @@ func DiaryPut(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 
-	diary, err := service.PutDiary(userID, id, req.Title, req.Content, req.Mood, req.Weather, req.Location)
+	var occurredAt *time.Time
+	if req.OccurredAt != nil {
+		t, err := parseTimeRFC3339(*req.OccurredAt)
+		if err != nil {
+			c.JSON(consts.StatusBadRequest, utils.H{
+				"error": "occurred_at 参数不合法",
+			})
+			return
+		}
+		occurredAt = &t
+	}
+
+	diary, err := service.PutDiary(userID, id, occurredAt, req.Title, req.Content, req.Mood, req.Weather, req.Location)
 	if err != nil {
 		mapDiaryErr(c, err)
 		return
@@ -230,7 +262,19 @@ func DiaryPatch(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 
-	diary, err := service.PatchDiary(userID, id, req.Title, req.Content, req.Mood, req.Weather, req.Location)
+	var occurredAt *time.Time
+	if req.OccurredAt != nil {
+		t, err := parseTimeRFC3339(*req.OccurredAt)
+		if err != nil {
+			c.JSON(consts.StatusBadRequest, utils.H{
+				"error": "occurred_at 参数不合法",
+			})
+			return
+		}
+		occurredAt = &t
+	}
+
+	diary, err := service.PatchDiary(userID, id, occurredAt, req.Title, req.Content, req.Mood, req.Weather, req.Location)
 	if err != nil {
 		mapDiaryErr(c, err)
 		return

@@ -24,6 +24,7 @@ type DraftDiaryRedis struct {
 	Mood        string
 	Weather     string
 	Location    string
+	OccurredAtMs int64
 	Version     uint64
 	CreatedAtMs int64
 	UpdatedAtMs int64
@@ -103,6 +104,7 @@ redis.call('HSET', draftKey,
 	'mood', ARGV[8],
 	'weather', ARGV[9],
 	'location', ARGV[10],
+	'occurred_at', ARGV[11],
 	'version', 1,
 	'created_at', nowMs,
 	'updated_at', nowMs,
@@ -155,6 +157,10 @@ redis.call('HSET', draftKey,
 	'updated_at', nowMs,
 	'deleted', 0
 )
+
+if ARGV[11] ~= '' then
+	redis.call('HSET', draftKey, 'occurred_at', ARGV[11])
+end
 
 local newv = redis.call('HINCRBY', draftKey, 'version' , 1)
 redis.call('PEXPIRE', draftKey, ttlMs)
@@ -244,7 +250,7 @@ return {'OK', tostring(newv), tostring(nowMs)}
 `)
 
 // CreateDraftDiaryRedis 创建草稿日记的Redis对象
-func CreateDraftDiaryRedis(userID uint, title, content, mood, weather, location string, ttl time.Duration, debounce time.Duration) (*DraftDiaryRedis, error) {
+func CreateDraftDiaryRedis(userID uint, occurredAtMs int64, title, content, mood, weather, location string, ttl time.Duration, debounce time.Duration) (*DraftDiaryRedis, error) {
 	if RDB == nil {
 		return nil, errors.New("redis not initialized")
 	}
@@ -265,6 +271,7 @@ func CreateDraftDiaryRedis(userID uint, title, content, mood, weather, location 
 		strconv.FormatInt(debounce.Milliseconds(), 10),
 		strconv.FormatInt(nowMs, 10),
 		title, content, mood, weather, location,
+		strconv.FormatInt(occurredAtMs, 10),
 	).Result()
 	if err != nil {
 		return nil, err
@@ -351,7 +358,7 @@ func ListDraftDiariesRedis(userID uint, page, pageSize int) ([]DraftDiaryRedis, 
 	return items, total, nil
 }
 
-func PutDraftDiaryRedis(userID uint, draftID uint64, expectedVersion *uint64, title, content, mood, weather, location string, ttl time.Duration, debounce time.Duration) (*DraftDiaryRedis, uint64, error) {
+func PutDraftDiaryRedis(userID uint, draftID uint64, expectedVersion *uint64, occurredAtMs *int64, title, content, mood, weather, location string, ttl time.Duration, debounce time.Duration) (*DraftDiaryRedis, uint64, error) {
 	if RDB == nil {
 		return nil, 0, errors.New("redis not initialized")
 	}
@@ -359,6 +366,10 @@ func PutDraftDiaryRedis(userID uint, draftID uint64, expectedVersion *uint64, ti
 	expected := ""
 	if expectedVersion != nil {
 		expected = strconv.FormatUint(*expectedVersion, 10)
+	}
+	occurredAt := ""
+	if occurredAtMs != nil {
+		occurredAt = strconv.FormatInt(*occurredAtMs, 10)
 	}
 	nowMs := time.Now().UnixMilli()
 	key := DraftDiaryKey(userID, draftID)
@@ -370,6 +381,7 @@ func PutDraftDiaryRedis(userID uint, draftID uint64, expectedVersion *uint64, ti
 		strconv.FormatInt(nowMs, 10),
 		strconv.FormatUint(draftID, 10),
 		title, content, mood, weather, location,
+		occurredAt,
 	).Result()
 	if err != nil {
 		return nil, 0, err
@@ -578,6 +590,10 @@ func mapToDraftDiaryRedis(m map[string]string) (*DraftDiaryRedis, error) {
 	version, _ := strconv.ParseUint(m["version"], 10, 64)
 	createdAtMs, _ := strconv.ParseInt(m["created_at"], 10, 64)
 	updatedAtMs, _ := strconv.ParseInt(m["updated_at"], 10, 64)
+	occurredAtMs, _ := strconv.ParseInt(m["occurred_at"], 10, 64)
+	if occurredAtMs <= 0 {
+		occurredAtMs = createdAtMs
+	}
 
 	return &DraftDiaryRedis{
 		ID:          id,
@@ -587,6 +603,7 @@ func mapToDraftDiaryRedis(m map[string]string) (*DraftDiaryRedis, error) {
 		Mood:        m["mood"],
 		Weather:     m["weather"],
 		Location:    m["location"],
+		OccurredAtMs: occurredAtMs,
 		Version:     version,
 		CreatedAtMs: createdAtMs,
 		UpdatedAtMs: updatedAtMs,
