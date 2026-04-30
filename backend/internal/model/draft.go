@@ -7,7 +7,7 @@ import (
 )
 
 type DraftDiary struct {
-	ID       uint64 `gorm:"primaryKey;autoIncrement:false" json:"id`
+	ID       uint64 `gorm:"primaryKey;autoIncrement:false" json:"id"`
 	UserID   uint   `gorm:"index;not null" json:"user_id"`
 	Title    string `gorm:"type:varchar(100);not null" json:"title"`
 	Content  string `gorm:"type:longtext;not null" json:"content"`

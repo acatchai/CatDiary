@@ -9,6 +9,7 @@ import (
 	"github.com/acatchai/catdiary/backend/internal/config"
 	"github.com/acatchai/catdiary/backend/internal/repository"
 	"github.com/acatchai/catdiary/backend/internal/router"
+	"github.com/acatchai/catdiary/backend/internal/worker"
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/cloudwego/hertz/pkg/protocol"
 	"github.com/go-playground/validator/v10"

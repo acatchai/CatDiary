@@ -200,7 +200,7 @@ end
 
 for i=1,n do
 	local k = ARGV[6 + (i-1)*2 + 1]
-	local v = ARGC[6 + (i-1)*2 + 2]
+	local v = ARGV[6 + (i-1)*2 + 2]
 	redis.call('HSET', draftKey, k, v)
 end
 

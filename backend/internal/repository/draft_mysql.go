@@ -15,6 +15,7 @@ type DraftDiarySnapshot struct {
 	Mood        string
 	Weather     string
 	Location    string
+	Version     uint64
 	CreatedAtMs int64
 	UpdatedAtMs int64
 }
@@ -40,10 +41,10 @@ version = GREATEST(version, VALUES(version)),
 deleted_at = NULL
 `
 	return DB.WithContext(ctx).Exec(sql,
-		s.ID, s.UserID, s.Title, s.Content, s.Mood, s.Weather, s.Location, createdAt, updatedAt).Error
+		s.ID, s.UserID, s.Title, s.Content, s.Mood, s.Weather, s.Location, s.Version, createdAt, updatedAt).Error
 }
 
 // DeleteDraftDiaryMysql 删除草稿日记快照
-func DeleteDraftDiaryMysql(ctx context.Context, userID uint, draftID uint64) error {
+func DeleteDraftDiaryMySQL(ctx context.Context, userID uint, draftID uint64) error {
 	return DB.WithContext(ctx).Where("id = ? AND user_id = ?", draftID, userID).Delete(&model.DraftDiary{}).Error
 }
