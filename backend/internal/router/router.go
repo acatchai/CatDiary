@@ -32,9 +32,13 @@ func Register(h *server.Hertz) {
 	diaries.DELETE("/:id", handler.DiaryDelete)
 
 	drafts := v1.Group("/drafts", middleware.RequireAuth())
-	drafts.PUT("/diary", handler.DraftPutDiary)
-	drafts.GET("/diary", handler.DraftGetDiary)
-	drafts.DELETE("/diary", handler.DraftDeleteDiary)
+	drafts.POST("", handler.DraftCreate)
+	drafts.GET("", handler.DraftList)
+	drafts.GET("/:id", handler.DraftGet)
+	drafts.PUT("/:id", handler.DraftPut)
+	drafts.PATCH("/:id", handler.DraftPatch)
+	drafts.DELETE("/:id", handler.DraftDelete)
+	drafts.POST("/:id/flush", handler.DraftFlush)
 
 	uploads := v1.Group("/uploads", middleware.RequireAuth())
 	uploads.POST("", handler.UploadCreate)

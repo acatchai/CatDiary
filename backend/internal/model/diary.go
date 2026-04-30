@@ -15,6 +15,7 @@ type Diary struct {
 	Mood     string `gorm:"type:varchar(20);comment:当天心情(如: happy, sad)" json:"mood"`
 	Weather  string `gorm:"type:varchar(20);comment:天气情况(如: sunny, rainy)" json:"weather"`
 	Location string `gorm:"type:varchar(100);comment:记录地点" json:"location"`
+	OccurredAt *time.Time `gorm:"index;comment:记录发生时间" json:"occurred_at"`
 
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
