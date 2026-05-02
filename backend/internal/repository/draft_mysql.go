@@ -8,17 +8,17 @@ import (
 )
 
 type DraftDiarySnapshot struct {
-	ID          uint64
-	UserID      uint
-	Title       string
-	Content     string
-	Mood        string
-	Weather     string
-	Location    string
+	ID           uint64
+	UserID       uint
+	Title        string
+	Content      string
+	Mood         string
+	Weather      string
+	Location     string
 	OccurredAtMs int64
-	Version     uint64
-	CreatedAtMs int64
-	UpdatedAtMs int64
+	Version      uint64
+	CreatedAtMs  int64
+	UpdatedAtMs  int64
 }
 
 // UpsertDraftDiarySnapshot 插入或更新草稿日记快照
