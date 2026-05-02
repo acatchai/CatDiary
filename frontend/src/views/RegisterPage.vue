@@ -1,36 +1,29 @@
 <script setup>
-import { computed, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { apiRequest } from '../services/api'
-import { setToken } from '../services/auth'
 
-const route = useRoute()
 const router = useRouter()
 
-const form = ref({ username: '', password: '' })
+const form = ref({ username: '', password: '', email: '' })
 const errorText = ref('')
 const loading = ref(false)
-
-const redirectTo = computed(() => {
-    const q = route.query?.redirect
-    return typeof q === 'string' && q.trim() !== '' ? q : '/app/diaries'
-})
 
 async function submit() {
     errorText.value = ''
     loading.value = true
     try {
-        const res = await apiRequest('/auth/login', {
+        await apiRequest('/auth/register', {
             method: 'POST',
             body: JSON.stringify({
                 username: form.value.username,
                 password: form.value.password,
-            })
+                email: form.value.email || '',
+            }),
         })
-        setToken(res?.token || '')
-        await router.replace(redirectTo.value)
+        await router.replace({ name: 'login' })
     } catch (e) {
-        errorText.value = e?.message || '登录失败'
+        errorText.value = e?.message || '注册失败'
     } finally {
         loading.value = false
     }
@@ -42,7 +35,7 @@ async function submit() {
         <div class="cd-container py-[60px]">
             <div class="mx-auto max-w-[520px] cd-card bg-[#F3F3F3] p-[50px]">
                 <div class="flex items-center justify-between">
-                    <div class="cd-h2">登录</div>
+                    <div class="cd-h2">注册</div>
                     <RouterLink class="cd-p underline" to="/">返回首页</RouterLink>
                 </div>
 
@@ -58,7 +51,14 @@ async function submit() {
                         <span class="cd-p">密码</span>
                         <input v-model="form.password"
                             class="h-[54px] rounded-[14px] border border-[#191A23] bg-white px-[18px] outline-none"
-                            type="password" autocomplete="current-password" />
+                            type="password" autocomplete="new-password" />
+                    </label>
+
+                    <label class="grid gap-[10px]">
+                        <span class="cd-p">邮箱（可选）</span>
+                        <input v-model="form.email"
+                            class="h-[54px] rounded-[14px] border border-[#191A23] bg-white px-[18px] outline-none"
+                            type="email" autocomplete="email" />
                     </label>
 
                     <div v-if="errorText" class="rounded-[14px] border border-[#191A23] bg-white p-[14px] cd-p">
@@ -66,18 +66,15 @@ async function submit() {
                     </div>
 
                     <button class="cd-btn cd-btn-primary cd-p disabled:opacity-60" :disabled="loading" type="submit">
-                        {{ loading ? '登录中...' : '登录' }}
+                        {{ loading ? '注册中...' : '注册' }}
                     </button>
 
                     <div class="cd-p">
-                        还没有账号？
-                        <RouterLink class="underline" to="/register">去注册</RouterLink>
+                        已有账号？
+                        <RouterLink class="underline" to="/login">去登录</RouterLink>
                     </div>
-
                 </form>
             </div>
         </div>
-
     </div>
-
 </template>
