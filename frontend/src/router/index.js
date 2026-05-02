@@ -5,6 +5,10 @@ import loginPage from '../views/LoginPage.vue'
 import RegisterPage from '../views/RegisterPage.vue'
 import AppLayout from '../views/app/AppLayout.vue'
 import DiaryListPage from '../views/app/DiaryListPage.vue'
+import DiaryNewPage from '../views/app/DiaryNewPage.vue'
+
+
+
 
 const routes = [
     {
@@ -32,6 +36,12 @@ const routes = [
                 path: 'diaries',
                 name: 'diary-list',
                 component: DiaryListPage,
+                meta: { requiresAuth: true }
+            },
+            {
+                path: 'diaries/new',
+                name: 'diary-new',
+                component: DiaryNewPage,
                 meta: { requiresAuth: true }
             }
         ]

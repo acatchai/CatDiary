@@ -4,7 +4,11 @@ import { useRouter } from 'vue-router'
 import { getToken } from '../services/auth'
 import star36Url from '../assets/positivus/star-36.svg'
 import star100Url from '../assets/positivus/star-100.svg'
-
+import catStartUrl from '../assets/cats/catStart.png'
+import catMoodUrl from '../assets/cats/catMood.png'
+import catDraftUrl from '../assets/cats/catDraft.png'
+import catPhotoUrl from '../assets/cats/catPhoto.png'
+import catTitleUrl from '../assets/cats/catTitle.png'
 
 const router = useRouter()
 const token = computed(() => getToken())
@@ -93,25 +97,7 @@ function goStart() {
 
         <div class="flex-1">
           <div class="relative h-[420px] w-full overflow-hidden rounded-[45px] border border-[#191A23] bg-[#F3F3F3]">
-            <div class="absolute left-[40px] top-[40px] cd-chip cd-h4 px-[14px] py-[]">
-              可爱风
-            </div>
-            <div class="absolute bottom-[40px] left-[40px] right-[40px] cd-p">
-              一只猫正在将今天的心情存入日记
-            </div>
-
-            <div class="absolute right-[32px] top-[32px]">
-              <img alt="" class="h-[36px] w-[36px]" :src="star36Url">
-            </div>
-            <div class="absolute right-[70px] top-[120px]">
-              <img alt="" class="h-[100px] w-[100px]" :src="star100Url" />
-            </div>
-            <div
-              class="absolute left-[120px] top-[150px] h-[150px] w-[150px] rounded-full border border-[#191A23] bg-white">
-            </div>
-            <div
-              class="absolute left-[260px] top-[210px] h-[110px] w-[110px] rounded-full border border-[#191A23] bg-[#B9FF66]">
-            </div>
+            <img :src="catTitleUrl" alt="" class="absolute inset-0 h-full w-full object-cover select-none">
           </div>
         </div>
       </section>
@@ -159,7 +145,7 @@ function goStart() {
                 </span>
               </RouterLink>
             </div>
-            <div class="h-[170px] w-[210px] rounded-[16px] bg-white"></div>
+            <img :src="catStartUrl" alt="" class="h-[170px] w-[210px] rounded-[16px] bg-white object-contain">
           </div>
 
           <div class="cd-card flex items-center justify-between p-[50px]">
@@ -180,7 +166,7 @@ function goStart() {
                 </span>
               </RouterLink>
             </div>
-            <div class="h-[170px] w-[210px] rounded-[16px] bg-white"></div>
+            <img :src="catMoodUrl" alt="" class="h-[170px] w-[210px] rounded-[16px] bg-white object-contain">
           </div>
 
           <div class="cd-card flex items-center justify-between p-[50px]">
@@ -201,7 +187,7 @@ function goStart() {
                 </span>
               </RouterLink>
             </div>
-            <div class="h-[170px] w-[210px] rounded-[16px] bg-white"></div>
+            <img :src="catDraftUrl" alt="" class="h-[170px] w-[210px] rounded-[16px] bg-white object-contain">
           </div>
 
           <div class="cd-card flex items-center justify-between p-[50px]">
@@ -222,7 +208,7 @@ function goStart() {
                 </span>
               </RouterLink>
             </div>
-            <div class="h-[170px] w-[210px] rounded-[16px] bg-white"></div>
+            <img :src="catPhotoUrl" alt="" class="h-[170px] w-[210px] rounded-[16px] bg-white object-contain">
           </div>
         </div>
       </section>
