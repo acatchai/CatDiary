@@ -80,7 +80,7 @@ async function insertImageFromFile(file) {
             hintText.value = '上传接口未返回可用 URL'
             return
         }
-        form.value.content = `${form.value.content}\n\n!(${url})\n`
+        form.value.content = `${form.value.content}\n\n![](${url})\n`
     } catch (e) {
         errorText.value = e?.message || '上传失败'
     }
