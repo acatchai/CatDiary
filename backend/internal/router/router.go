@@ -10,7 +10,7 @@ import (
 func Register(h *server.Hertz) {
 	h.GET("/healthz", handler.Healthz)
 	h.GET("/readyz", handler.Readyz)
-	h.StaticFS("/uploads", &app.FS{Root: "./data/uploads"})
+	h.StaticFS("/uploads", &app.FS{Root: "./data/uploads", PathRewrite: app.NewPathSlashesStripper(1)})
 
 	v1 := h.Group("/api/v1")
 

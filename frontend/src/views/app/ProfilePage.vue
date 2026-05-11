@@ -4,8 +4,10 @@ import { apiRequest } from '../../services/api'
 
 const loading = ref(false)
 const saving = ref(false)
+const uploading = ref(false)
 const errorText = ref('')
 const hintText = ref('')
+const fileInput = ref(null)
 
 const me = ref(null)
 const form = ref({
@@ -13,6 +15,33 @@ const form = ref({
     email: '',
     avatar: '',
 })
+
+function openFilePicker() {
+    fileInput.value?.click()
+}
+
+async function handleAvatarSelected(event) {
+    const file = event?.target?.files?.[0]
+    if (!file) return
+    const formData = new FormData()
+    formData.append('file', file)
+
+    uploading.value = true
+    errorText.value = ''
+    hintText.value = ''
+    try {
+        const res = await apiRequest('/uploads', { method: 'POST', body: formData })
+        const url = res?.data?.url || res?.url || ''
+        if (!url) throw new Error('上传成功但没有返回URL')
+        form.value.avatar = url
+        hintText.value = '头像已上传，请记得再点一次保存'
+    } catch (e) {
+        errorText.value = e?.message || '上传失败'
+    } finally {
+        uploading.value = false
+        if (event?.target) event.target.value = ''
+    }
+}
 
 async function load() {
     loading.value = true
@@ -66,8 +95,8 @@ onMounted(load)
                     <span v-else>将你的名字与头像变可爱~</span>
                 </div>
             </div>
-            <button class="cd-btn cd-btn-primary cd-p disabled:opacity-60" :disabled="saving || loading" type="button"
-                @click="save">
+            <button class="cd-btn cd-btn-primary cd-p disabled:opacity-60" :disabled="saving || loading || uploading"
+                type="button" @click="save">
                 {{ saving ? '保存中...' : '保存' }}
             </button>
         </div>
@@ -108,8 +137,18 @@ onMounted(load)
                         <span class="cd-p">头像 URL</span>
                         <input v-model="form.avatar"
                             class="h-[54px] rounded-[14px] border border-[#191A23] bg-white px-[18px] outline-none"
-                            placeholder="https://..." />
+                            placeholder="https://... 或上传后自动填充" />
                     </label>
+                    <div class="grid gap-[10px]">
+                        <span class="cd-p">本地头像上传</span>
+                        <input ref="fileInput" class="hidden" type="file"
+                            accept="image/png,image/jpeg,image/webp,image/gif" @change="handleAvatarSelected" />
+                        <button
+                            class="cd-btn cd-btn-outline cd-p inline-flex w-fit items-center justify-center disabled:opacity-60"
+                            type="button" :disabled="uploading || loading || saving" @click="openFilePicker">
+                            {{ uploading ? '上传中...' : '选择本地图片上传' }}
+                        </button>
+                    </div>
                     <div class="cd-p text-[#191A23]">
                         <span v-if="me?.created_at">创建时间：{{ me.created_at }}</span>
                     </div>
