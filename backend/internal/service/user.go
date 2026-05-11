@@ -13,6 +13,7 @@ var (
 	ErrEmailExists     = errors.New("邮箱已存在")
 	ErrInvalidUsername = errors.New("用户名不能为空")
 	ErrInvalidEmail    = errors.New("邮箱不能为空")
+	ErrInvalidAvatar   = errors.New("头像地址不合法")
 )
 
 func UpdateMe(userID uint, username, email, avatar *string) (*model.User, error) {
@@ -60,7 +61,14 @@ func UpdateMe(userID uint, username, email, avatar *string) (*model.User, error)
 	}
 
 	if avatar != nil {
-		updates["avatar"] = strings.TrimSpace(*avatar)
+		newAvatar := strings.TrimSpace(*avatar)
+		if newAvatar == "" {
+			updates["avatar"] = ""
+		} else if strings.HasPrefix(newAvatar, "/uploads/") || strings.HasPrefix(newAvatar, "http://") || strings.HasPrefix(newAvatar, "https://") {
+			updates["avatar"] = newAvatar
+		} else {
+			return nil, ErrInvalidAvatar
+		}
 	}
 
 	if err := repository.UpdateUserByID(userID, updates); err != nil {

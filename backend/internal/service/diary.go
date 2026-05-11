@@ -31,11 +31,11 @@ func CreateDiary(userID uint, occurredAt *time.Time, title, content, mood, weath
 	}
 	diary := &model.Diary{
 		UserID:     userID,
-		Title:    strings.TrimSpace(title),
-		Content:  content,
-		Mood:     strings.TrimSpace(mood),
-		Weather:  strings.TrimSpace(weather),
-		Location: strings.TrimSpace(location),
+		Title:      strings.TrimSpace(title),
+		Content:    content,
+		Mood:       strings.TrimSpace(mood),
+		Weather:    strings.TrimSpace(weather),
+		Location:   strings.TrimSpace(location),
 		OccurredAt: occurredAt,
 	}
 	if err := repository.CreateDiary(diary); err != nil {
@@ -91,13 +91,11 @@ func PutDiary(userID, diaryID uint, occurredAt *time.Time, title, content, mood,
 	if occurredAt != nil {
 		fields["occurred_at"] = *occurredAt
 	}
-	affected, err := repository.UpdateDiaryByIDAndUser(userID, diaryID, fields)
+	_, err := repository.UpdateDiaryByIDAndUser(userID, diaryID, fields)
 	if err != nil {
 		return nil, err
 	}
-	if affected == 0 {
-		return nil, ErrDiaryNotFound
-	}
+
 	return GetDiary(userID, diaryID)
 }
 
@@ -127,13 +125,11 @@ func PatchDiary(userID, diaryID uint, occurredAt *time.Time, title, content, moo
 		return nil, ErrNoDiaryUpdates
 	}
 
-	affected, err := repository.UpdateDiaryByIDAndUser(userID, diaryID, fields)
+	_, err := repository.UpdateDiaryByIDAndUser(userID, diaryID, fields)
 	if err != nil {
 		return nil, err
 	}
-	if affected == 0 {
-		return nil, ErrDiaryNotFound
-	}
+
 	return GetDiary(userID, diaryID)
 }
 

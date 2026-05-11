@@ -80,7 +80,7 @@ async function insertImageFromFile(file) {
             hintText.value = '上传接口未返回可用 URL'
             return
         }
-        form.value.content = `${form.value.content}\n\n!(${url})\n`
+        form.value.content = `${form.value.content}\n\n![](${url})\n`
     } catch (e) {
         errorText.value = e?.message || '上传失败'
     }
@@ -128,7 +128,7 @@ function onPickImage(e) {
                 </label>
                 <div class="cd-p text-[#191A23]">
                     <span v-if="hintText">{{ hintText }}</span>
-                    <span v-else>上传接口后端目前是 TODO，启用后可直接插入图片链接。</span>
+                    <span v-else>选择图片后会自动上传，并将图片链接插入到正文里。</span>
                 </div>
             </div>
 

@@ -62,7 +62,7 @@ function goStart() {
         <div class="hidden items-center gap-[40px] md:flex">
           <a class="cd-p" href="#about">关于</a>
           <a class="cd-p" href="#features">功能</a>
-          <a class="cd-p" href="#example">示例</a>
+          <a class="cd-p" href="#examples">示例</a>
           <a class="cd-p" href="#plan">计划</a>
           <a class="cd-p" href="#contact">反馈</a>
         </div>

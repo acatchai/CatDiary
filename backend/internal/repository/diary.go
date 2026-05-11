@@ -32,7 +32,7 @@ func GetDiaryByIDAndUser(userID, diaryID uint) (*model.Diary, error) {
 	var diary model.Diary
 	err := DB.Where("id = ? AND user_id = ?", diaryID, userID).First(&diary).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, err
+		return nil, nil
 	}
 	if err != nil {
 		return nil, err

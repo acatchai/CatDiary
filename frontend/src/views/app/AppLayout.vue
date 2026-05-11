@@ -10,7 +10,7 @@ const loggingOut = ref(false)
 const navItems = computed(() => [
     { to: { name: 'diary-list' }, label: '日记' },
     { to: { name: 'diary-new' }, label: '写日记' },
-    { to: { name: 'diaft-list' }, label: '草稿' },
+    { to: { name: 'draft-list' }, label: '草稿' },
     { to: { name: 'profile' }, label: '个人资料' },
     { to: { name: 'security' }, label: '安全设置' },
 ])

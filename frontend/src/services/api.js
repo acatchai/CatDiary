@@ -6,9 +6,12 @@ export async function apiRequest(path, options = {}) {
         : `/api/v1${path.startsWith('/') ? path : `/${path}`}`
 
     const headers = new Headers(options.headers || {})
-    if (!headers.has('Content-Type') && options.body != null) {
+
+    const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
+    if (!isFormData && !headers.has('Content-Type') && options.body != null) {
         headers.set('Content-Type', 'application/json')
     }
+
 
     const token = getToken()
     if (token) headers.set('Authorization', `Bearer ${token}`)

@@ -3,12 +3,14 @@ package router
 import (
 	"github.com/acatchai/catdiary/backend/internal/handler"
 	"github.com/acatchai/catdiary/backend/internal/middleware"
+	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/server"
 )
 
 func Register(h *server.Hertz) {
 	h.GET("/healthz", handler.Healthz)
 	h.GET("/readyz", handler.Readyz)
+	h.StaticFS("/uploads", &app.FS{Root: "./data/uploads", PathRewrite: app.NewPathSlashesStripper(1)})
 
 	v1 := h.Group("/api/v1")
 

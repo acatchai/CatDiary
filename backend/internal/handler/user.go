@@ -12,7 +12,7 @@ import (
 type UserPatchMeReq struct {
 	Username *string `json:"username" validate:"omitempty,min=3,max=50"`
 	Email    *string `json:"email" validate:"omitempty,email"`
-	Avatar   *string `json:"avatar" validate:"omitempty,url"`
+	Avatar   *string `json:"avatar" validate:"omitempty,max=255"`
 }
 
 type UserPatchPasswordReq struct {
@@ -86,7 +86,7 @@ func UserPatchMe(ctx context.Context, c *app.RequestContext) {
 			c.JSON(consts.StatusNotFound, utils.H{
 				"error": err.Error(),
 			})
-		case service.ErrUserExists, service.ErrEmailExists, service.ErrInvalidUsername, service.ErrInvalidEmail:
+		case service.ErrUserExists, service.ErrEmailExists, service.ErrInvalidUsername, service.ErrInvalidEmail, service.ErrInvalidAvatar:
 			status := consts.StatusBadRequest
 			if err == service.ErrUserExists || err == service.ErrEmailExists {
 				status = consts.StatusConflict
