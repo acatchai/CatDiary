@@ -70,7 +70,7 @@ async function load() {
             mood: draft.value?.mood || '',
             weather: draft.value?.weather || '',
             location: draft.value?.location || '',
-            occurredAtLocal: toLocalDatetimeValue(draft.value?.occured_at),
+            occurredAtLocal: toLocalDatetimeValue(draft.value?.occurred_at),
         }
         lastSavedSnapshot = snapshot()
     } catch (e) {
@@ -110,7 +110,7 @@ async function autosave() {
         }
         if (form.value.occurredAtLocal) {
             const d = new Date(form.value.occurredAtLocal)
-            if (!Number.isNaN(d.getTime())) body.occured_at = d.toISOString()
+            if (!Number.isNaN(d.getTime())) body.occurred_at = d.toISOString()
         }
 
         const res = await apiRequest(`/drafts/${id.value}`, { method: 'PUT', body: JSON.stringify(body) })
@@ -146,7 +146,7 @@ async function manualSave() {
         }
         if (form.value.occurredAtLocal) {
             const d = new Date(form.value.occurredAtLocal)
-            if (!Number.isNaN(d.getTime())) body.occured_at = d.toISOString()
+            if (!Number.isNaN(d.getTime())) body.occurred_at = d.toISOString()
         }
         const res = await apiRequest(`/drafts/${id.value}`, { method: 'PUT', body: JSON.stringify(body) })
         draft.value = res?.data || draft.value
@@ -301,7 +301,7 @@ onBeforeUnmount(() => {
                     插入图片
                     <input class="hidden" accept="image/*" type="file" @change="onPickImage" />
                 </label>
-                <div class="cd-p text-[#191A23]">上传接口后端目前是 TODO，启用后可直接插入图片链接。</div>
+                <div class="cd-p text-[#191A23]">选择图片后将上传并把图片链接插入正文。</div>
             </div>
 
             <div class="grid gap-[20px] md:grid-cols-2">
